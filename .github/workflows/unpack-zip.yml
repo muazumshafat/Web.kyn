@@ -1,0 +1,45 @@
+name: Unpack site ZIP (auto-extract for Web.kyn)
+
+on:
+  push:
+    paths:
+      - 'web-v6-complete.zip'
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List repo before
+        run: ls -la
+
+      - name: Unzip site archive if present
+        run: |
+          ZIP='web-v6-complete.zip'
+          if [ -f "$ZIP" ]; then
+            mkdir -p extracted
+            unzip -o "$ZIP" -d extracted
+            rsync -a --remove-source-files extracted/ .
+          else
+            echo "ZIP not found: $ZIP"
+            exit 0
+          fi
+
+      - name: Show what was extracted
+        run: ls -la
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add --all
+          git commit -m "Unpack site ZIP into repository" || echo "No changes to commit"
+          git push
